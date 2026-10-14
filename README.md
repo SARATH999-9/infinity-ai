@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # INFINITY AI  (powered by Sarath Chandra)
 
 A ChatGPT-style assistant with a black and gold interface.
@@ -81,3 +82,6 @@ frontend/index.html     the whole interface
 
 ## Put it online (Render, Railway, Fly.io, any Docker host)
 Use the included Dockerfile. Set the same variables as `.env` on the host, use a hosted PostgreSQL `DATABASE_URL` (add `psycopg2-binary` to requirements.txt), serve over HTTPS, and add your domain to the Google client's authorized origins.
+=======
+# infinity-ai
+>>>>>>> 59afb62d3cef381a1a7fdf32a9bd6b01731eaaa1
