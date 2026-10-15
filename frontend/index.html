@@ -77,9 +77,20 @@ main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
 textarea{flex:1;resize:none;border:0;outline:0;background:none;color:inherit;font:inherit;max-height:180px;padding:9px 4px;line-height:1.5}
 .box .ib{border-color:transparent}
 #send{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#000;border:0}
-#mic.on{background:var(--gold);color:#000;box-shadow:0 0 calc(6px + var(--lv)*34px) rgba(246,220,132,.8)}
-#spk.on,#deep.on{color:#000;background:var(--gold)}
-#lang{font-size:11px;font-weight:600;width:34px}
+textarea::placeholder{color:var(--mute)}
+.plus{position:relative;flex-shrink:0}
+.menu{position:absolute;bottom:52px;left:0;min-width:220px;background:#14110a;border:1px solid var(--line);border-radius:14px;padding:6px;display:none;box-shadow:0 12px 40px rgba(0,0,0,.6);z-index:5}
+.menu.show{display:block;animation:in .15s ease}
+.menu button{display:flex;gap:12px;align-items:center;width:100%;padding:11px 12px;border-radius:9px;color:var(--ink);text-align:left}
+.menu button:hover{background:rgba(212,175,55,.1);color:var(--gold2)}
+.menu svg.i{color:var(--gold)}
+#vmode{color:var(--gold2)}
+.gimg{position:relative;margin:10px 0;max-width:440px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#0d0b07}
+.gimg img{display:block;width:100%;height:auto}
+.gimg.sk{aspect-ratio:1;background:linear-gradient(110deg,#14110a 30%,#2e2512 50%,#14110a 70%);background-size:200% 100%;animation:skl 1.3s linear infinite}
+@keyframes skl{to{background-position:-200% 0}}
+.dl{position:absolute;right:8px;top:8px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.65);display:grid;place-items:center;color:var(--gold2)}
+.dl svg.i{width:17px;height:17px}
 .toast{max-width:780px;margin:0 auto 8px;text-align:center;font-size:13px;color:#e0765c}
 #vo{position:fixed;inset:0;z-index:20;background:rgba(5,4,2,.93);backdrop-filter:blur(10px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:20px}
 #vo.show{display:flex}
@@ -95,7 +106,7 @@ button:focus-visible,textarea:focus-visible{outline:2px solid var(--gold2);outli
 @media(max-width:760px){
 aside{position:fixed;z-index:5;top:0;bottom:0;left:0;padding-top:calc(16px + env(safe-area-inset-top,0px));transform:translateX(-100%);transition:transform .2s}
 aside.open{transform:none;box-shadow:0 0 0 100vmax rgba(0,0,0,.6)}
-#burger{display:grid;top:calc(12px + env(safe-area-inset-top,0px))}#msgs{padding-top:60px}#lang{display:none}}
+#burger{display:grid;top:calc(12px + env(safe-area-inset-top,0px))}#msgs{padding-top:60px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 body.locked .app{visibility:hidden}
 .hi{color:var(--mute);font-size:17px;font-family:'Source Serif 4',serif}.hi b{color:var(--gold2);font-weight:600}
@@ -189,6 +200,8 @@ body.locked .app{visibility:hidden}
 <symbol id="ok" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
 <symbol id="re" viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/></symbol>
 <symbol id="file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v4h4"/></symbol>
+<symbol id="photo" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></symbol>
+<symbol id="down" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
 <symbol id="out" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 8l-4 4 4 4M6 12h10"/></symbol></defs></svg>
 <div class="app">
 <aside id="side">
@@ -203,14 +216,17 @@ body.locked .app{visibility:hidden}
     <div class="toast" id="toast"></div>
     <div id="thumbs"></div>
     <div class="box">
-      <button class="ib" id="pick" aria-label="Attach files"><svg class="i"><use href="#clip"/></svg></button>
-      <input type="file" id="file" accept="image/*,.txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.java,.c,.cpp,.xml,.sql,.log,.yml,.yaml" multiple hidden>
-      <textarea id="in" rows="1" aria-label="Message"></textarea>
-      <button class="ib" id="deep" aria-label="Deep thinking"><svg class="i"><use href="#spark"/></svg></button>
-      <button class="ib" id="lang" aria-label="Voice language">EN</button>
-      <button class="ib" id="spk" aria-label="Read replies aloud"><svg class="i"><use href="#spk"/></svg></button>
-      <button class="ib" id="mic" aria-label="Dictate"><svg class="i"><use href="#mic"/></svg></button>
-      <button class="ib" id="vmode" aria-label="Voice conversation"><svg class="i"><use href="#wave"/></svg></button>
+      <div class="plus" id="plusWrap">
+        <button class="ib" id="plusBtn" aria-label="Add photos or files"><svg class="i"><use href="#plus"/></svg></button>
+        <div class="menu" id="addMenu">
+          <button id="mPhoto"><svg class="i"><use href="#photo"/></svg>Photos</button>
+          <button id="mFile"><svg class="i"><use href="#clip"/></svg>Files and documents</button>
+        </div>
+      </div>
+      <input type="file" id="fPhoto" accept="image/*" multiple hidden>
+      <input type="file" id="fDoc" accept=".pdf,.docx,.txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.java,.c,.cpp,.xml,.sql,.log,.yml,.yaml" multiple hidden>
+      <textarea id="in" rows="1" placeholder="Message INFINITY AI" aria-label="Message"></textarea>
+      <button class="ib" id="vmode" aria-label="Voice assistant"><svg class="i"><use href="#wave"/></svg></button>
       <button class="ib" id="send" aria-label="Send"><svg class="i"><use href="#up"/></svg></button>
     </div>
   </div>
@@ -282,7 +298,7 @@ function msgEl(m,i,last){const d=document.createElement("div");
     if(m.imgs&&m.imgs.length)d.innerHTML=`<div class="imgs">${m.imgs.map(s=>`<img src="${s}" alt="">`).join("")}</div>`;
     if(m.files&&m.files.length){const f=document.createElement("div");f.className="imgs";f.innerHTML=m.files.map(n=>`<div class="chip">${ic("file")}<span>${esc(n)}</span></div>`).join("");d.appendChild(f)}
     if(m.content){const b=document.createElement("div");b.className="b";b.textContent=m.content;d.appendChild(b)}}
-  else{d.className="m a";d.innerHTML=`<svg class="av"><use href="#inf"/></svg><div class="c"><div class="b">${md(m.content)}</div><div class="act" data-i="${i}"><button data-a="copy" aria-label="Copy">${ic("copy")}</button><button data-a="say" aria-label="Read aloud">${ic("spk")}</button>${last?`<button data-a="re" aria-label="Regenerate">${ic("re")}</button>`:""}</div></div>`}
+  else{d.className="m a";d.innerHTML=`<svg class="av"><use href="#inf"/></svg><div class="c"><div class="b">${md(m.content)}</div>${(m.imgs||[]).map(s=>`<div class="gimg"><img src="${s}" alt=""><a class="dl" href="${s}" download="infinity-ai.jpg" aria-label="Download">${ic("down")}</a></div>`).join("")}<div class="act" data-i="${i}"><button data-a="copy" aria-label="Copy">${ic("copy")}</button><button data-a="say" aria-label="Read aloud">${ic("spk")}</button>${last?`<button data-a="re" aria-label="Regenerate">${ic("re")}</button>`:""}</div></div>`}
   return d}
 function renderAll(){renderList();const c=chats.find(z=>z.id===cur);const w=$("wrap");w.innerHTML="";
   if(!c||!c.messages.length)w.innerHTML=`<div class="empty"><svg class="big" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#070706" stroke="#d4af37" stroke-width="1.2"/><path d="M32 32C27 22 15 22 15 32s12 10 17 0 17-10 17 0-12 10-17 0Z" fill="none" stroke="url(#g)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/><path class="trace" pathLength="160" d="M32 32C27 22 15 22 15 32s12 10 17 0 17-10 17 0-12 10-17 0Z" fill="none" stroke="#fff3bd" stroke-width="4.5" stroke-linecap="round"/></svg><div class="wm">INFINITY AI</div><div class="hi">${esc(greet())}${userName?", <b>"+esc(userName)+"</b>":""}</div></div>`;
@@ -298,20 +314,29 @@ async function addFiles(list){
         cv.getContext("2d").drawImage(bm,0,0,cv.width,cv.height);
         const full=cv.toDataURL("image/jpeg",.82);pending.push({t:"img",full,url:full})}catch(_){toast("That image could not be read.")}}
     else if(f.type.startsWith("text/")||TXT.test(f.name)){try{let t=await f.text();if(t.length>30000){t=t.slice(0,30000);toast("Large file trimmed to its first 30,000 characters.")}pending.push({t:"txt",name:f.name,text:t})}catch(_){toast("That file could not be read.")}}
-    else toast("Unsupported file. Use images, or text and code files.")}
+    else if(/\.(pdf|docx)$/i.test(f.name)){toast("Reading "+f.name+"...");
+      try{const b=new Uint8Array(await f.arrayBuffer());let bin="";for(let i=0;i<b.length;i+=32768)bin+=String.fromCharCode.apply(null,b.subarray(i,i+32768));
+        const r=await api("/extract",{method:"POST",body:JSON.stringify({name:f.name,data:btoa(bin)})});const j=await r.json().catch(()=>({}));
+        if(!r.ok)throw new Error(typeof j.detail==="string"?j.detail:"Could not read that document.");
+        pending.push({t:"txt",name:f.name,text:j.text});toast("")}catch(e){toast(e.message)}}
+    else toast("Unsupported file. Use images, PDF, Word, or text and code files.")}
   renderThumbs()}
 function renderThumbs(){const T=$("thumbs");T.innerHTML="";
   pending.forEach((p,i)=>{const d=document.createElement("div");d.className="th";
     d.innerHTML=(p.t==="img"?`<img src="${p.url}" alt="">`:`<div class="chip">${ic("file")}<span>${esc(p.name)}</span></div>`)+`<button aria-label="Remove">${ic("x")}</button>`;
     d.querySelector("button").onclick=()=>{pending.splice(i,1);renderThumbs()};T.appendChild(d)})}
-$("pick").onclick=()=>$("file").click();
-$("file").onchange=e=>{addFiles(e.target.files);e.target.value=""};
+const menu=$("addMenu");
+$("plusBtn").onclick=e=>{e.stopPropagation();menu.classList.toggle("show")};
+document.addEventListener("click",e=>{if(!e.target.closest("#plusWrap"))menu.classList.remove("show")});
+$("mPhoto").onclick=()=>{menu.classList.remove("show");$("fPhoto").click()};
+$("mFile").onclick=()=>{menu.classList.remove("show");$("fDoc").click()};
+$("fPhoto").onchange=$("fDoc").onchange=e=>{addFiles(e.target.files);e.target.value=""};
 $("in").addEventListener("paste",e=>{const f=[...(e.clipboardData?e.clipboardData.files:[])];if(f.length){e.preventDefault();addFiles(f)}});
 addEventListener("dragover",e=>{e.preventDefault();document.body.classList.add("drag")});
 addEventListener("dragleave",e=>{if(!e.relatedTarget)document.body.classList.remove("drag")});
 addEventListener("drop",e=>{e.preventDefault();document.body.classList.remove("drag");if(e.dataTransfer)addFiles(e.dataTransfer.files)});
 /* ---------- voice: output ---------- */
-const lang=()=>LANGS[li][0];
+const lang=()=>navigator.language||"en-US";
 function plain(t){return t.replace(/```[\s\S]*?```/g," code block. ").replace(/[*#`_>]/g,"")}
 function say(t){const s=plain(t).trim();if(!s||!window.speechSynthesis)return;
   const u=new SpeechSynthesisUtterance(s);u.lang=lang();u.rate=1.03;
@@ -337,21 +362,17 @@ async function listen(){
   if(listening||busy)return;stopSpeak();
   if(!stream&&!(await openMic())){voiceMode=false;$("vo").classList.remove("show");return}
   rec=new SR();rec.lang=lang();rec.interimResults=true;rec.continuous=false;let fin="",err=null;
-  rec.onstart=()=>{listening=true;$("mic").classList.add("on");vstate("")};
+  rec.onstart=()=>{listening=true;vstate("")};
   rec.onresult=e=>{let t="";for(const r of e.results){t+=r[0].transcript;if(r.isFinal)fin=t}$("in").value=t;$("vt").textContent=t;autosize()};
   rec.onerror=e=>{err=e.error;if(e.error==="not-allowed"||e.error==="service-not-allowed"){toast("Speech recognition is blocked. Allow the microphone in site settings.");voiceMode=false;$("vo").classList.remove("show")}else if(e.error==="network")toast("Speech recognition needs an internet connection.")};
-  rec.onend=()=>{listening=false;$("mic").classList.remove("on");
+  rec.onend=()=>{listening=false;
     if(fin.trim()){viaVoice=true;send()}
     else{if(!voiceMode)closeMic();else if(!err||err==="no-speech"||err==="aborted")setTimeout(()=>voiceMode&&!busy&&listen(),300);else{voiceMode=false;$("vo").classList.remove("show");closeMic()}}};
   try{rec.start()}catch(_){}}
-$("mic").onclick=()=>{if(listening){rec&&rec.stop();return}listen()};
-$("vmode").onclick=()=>{voiceMode=true;speakOn=true;$("spk").classList.add("on");$("vt").textContent="";$("vo").classList.add("show");listen()};
-function endVoice(){voiceMode=false;$("vo").classList.remove("show");vstate("");stopSpeak();if(rec)try{rec.abort()}catch(_){}closeMic();listening=false;$("mic").classList.remove("on")}
+$("vmode").onclick=()=>{voiceMode=true;speakOn=true;$("vt").textContent="";$("vo").classList.add("show");listen()};
+function endVoice(){voiceMode=false;$("vo").classList.remove("show");vstate("");stopSpeak();if(rec)try{rec.abort()}catch(_){}closeMic();listening=false}
 $("vclose").onclick=endVoice;
 $("orb").onclick=()=>{if(inflight){stopSpeak();listen()}else if(listening)rec&&rec.stop();else listen()};
-$("spk").onclick=()=>{speakOn=!speakOn;$("spk").classList.toggle("on",speakOn);if(!speakOn)stopSpeak()};
-$("deep").onclick=()=>{deep=!deep;$("deep").classList.toggle("on",deep)};
-$("lang").onclick=()=>{li=(li+1)%LANGS.length;$("lang").textContent=LANGS[li][1]};
 /* ---------- chat ---------- */
 function setBusy(b){busy=b;$("send").innerHTML=ic(b?"stop":"up")}
 async function send(){
@@ -364,12 +385,13 @@ async function send(){
   c.messages.push({role:"user",content,imgs:imgs.map(i=>i.full),files:txts.map(t=>t.name)});
   $("in").value="";$("vt").textContent="";autosize();
   run(c,{message:content,images:imgs.map(i=>i.full),files:txts.map(t=>({name:t.name,text:t.text}))})}
+const stripTag=t=>t.replace(/\[\[IMAGE:[\s\S]*?\]\]/g,"").replace(/\[\[IMAGE:[\s\S]*$/,"").replace(/\[{1,2}(I(M(A(G(E)?)?)?)?)?:?$/,"");
 async function run(c,payload){
   const speakThis=speakOn||viaVoice;viaVoice=false;renderAll();
   const holder=document.createElement("div");holder.className="m a";holder.innerHTML=`<svg class="av"><use href="#inf"/></svg><div class="c"><div class="b"><span class="cur"></span></div></div>`;$("wrap").appendChild(holder);scroll();
   const b=holder.querySelector(".b");vstate("think");
   stopSpeak();spoken=0;streamDone=!speakThis;
-  ctrl=new AbortController();setBusy(true);let reply="",fail=null;
+  ctrl=new AbortController();setBusy(true);let reply="",fail=null;const pics=[];
   try{
     const r=await api("/chat",{method:"POST",signal:ctrl.signal,body:JSON.stringify({conversation_id:c.id,title:c.title,deep,regenerate:!payload,...(payload||{})})});
     if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(typeof j.detail==="string"?j.detail:"Request failed. Check your message and try again.")}
@@ -377,15 +399,17 @@ async function run(c,payload){
     for(;;){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
       let k;while((k=buf.indexOf("\n\n"))>=0){const line=buf.slice(0,k).trim();buf=buf.slice(k+2);if(!line.startsWith("data:"))continue;
         const ev=JSON.parse(line.slice(5));
-        if(ev.type==="delta"){reply+=ev.text;b.innerHTML=md(reply)+'<span class="cur"></span>';scroll();if(speakThis)feed(reply,false)}
+        if(ev.type==="delta"){reply+=ev.text;b.innerHTML=md(stripTag(reply))+'<span class="cur"></span>';scroll();if(speakThis)feed(stripTag(reply),false)}
+        else if(ev.type==="status"){holder.querySelector(".c").insertAdjacentHTML("beforeend",'<div class="gimg sk" id="sk"></div>');scroll()}
+        else if(ev.type==="image"){pics.push(ev.url);const sk=$("sk");if(sk){sk.className="gimg";sk.removeAttribute("id");sk.innerHTML=`<img src="${ev.url}" alt="">`}scroll()}
         else if(ev.type==="error")throw new Error(ev.message)}}
   }catch(e){fail=e}
   setBusy(false);
-  if(!reply){vstate("");renderAll();if(fail&&fail.name!=="AbortError")toast(fail.message||"Something went wrong. Send your message again.");
+  if(!reply&&!pics.length){vstate("");renderAll();if(fail&&fail.name!=="AbortError")toast(fail.message||"Something went wrong. Send your message again.");
     if(voiceMode)setTimeout(()=>voiceMode&&listen(),600);return}
-  c.messages.push({role:"assistant",content:reply});renderAll();
+  c.messages.push({role:"assistant",content:stripTag(reply).trim(),imgs:pics});renderAll();
   if(fail&&fail.name!=="AbortError")toast(fail.message);
-  if(speakThis){streamDone=true;feed(reply,true);if(!inflight)spoken_done()}else{vstate("");if(voiceMode)setTimeout(()=>voiceMode&&listen(),400)}}
+  if(speakThis){streamDone=true;feed(stripTag(reply),true);if(!inflight)spoken_done()}else{vstate("");if(voiceMode)setTimeout(()=>voiceMode&&listen(),400)}}
 function autosize(){const t=$("in");t.style.height="auto";t.style.height=t.scrollHeight+"px"}
 $("send").onclick=send;
 $("in").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
@@ -445,14 +469,15 @@ async function googleLogin(cred){msg("");try{
     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(typeof j.detail==="string"?j.detail:"Google sign-in failed.");
     await enter(j.token,j.name)}catch(e){msg(e.message,"e")}}
 const GICON='<svg viewBox="0 0 48 48" width="18" height="18"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>';
-function fakeG(){const b=$("gbtn");b.innerHTML=`<button class="gfake" type="button">${GICON}<span>Continue with Google</span></button>`;
-  b.firstChild.onclick=()=>msg("Google sign-in is not set up yet. Add GOOGLE_CLIENT_ID to backend/.env (steps are in the README).","e")}
+function fakeG(why){const b=$("gbtn");b.innerHTML=`<button class="gfake" type="button">${GICON}<span>Continue with Google</span></button>`;
+  b.firstChild.onclick=()=>msg(why||"Google sign-in could not load. Reload the page and try again.","e")}
 function initGoogle(){
-  if(!(gcfg&&gcfg.google_client_id))return fakeG();
+  console.info("INFINITY AI Google sign-in: this page origin is",location.origin,"(it must be listed under Authorized JavaScript origins)");
+  if(!(gcfg&&gcfg.google_client_id))return fakeG("Google sign-in is not set up yet. Add GOOGLE_CLIENT_ID to backend/.env (steps are in the README).");
   const sc=document.createElement("script");sc.src="https://accounts.google.com/gsi/client";sc.async=true;
   sc.onload=()=>{try{google.accounts.id.initialize({client_id:gcfg.google_client_id,callback:r=>googleLogin(r.credential)});
-    google.accounts.id.renderButton($("gbtn"),{theme:"filled_black",size:"large",shape:"pill",text:"continue_with",width:300})}catch(e){fakeG()}};
-  sc.onerror=fakeG;document.head.appendChild(sc)}
+    google.accounts.id.renderButton($("gbtn"),{theme:"filled_black",size:"large",shape:"pill",text:"continue_with",width:300})}catch(e){fakeG("Google sign-in could not start: "+e.message)}};
+  sc.onerror=()=>fakeG("Could not load Google sign-in. Check your internet connection and turn off ad blockers for this page.");document.head.appendChild(sc)}
 /* welcome wish */
 function sparkle(){const w=$("wsp");w.innerHTML="";for(let i=0;i<34;i++){const d=document.createElement("i"),z=2+Math.random()*5;
   d.style.cssText=`left:${Math.random()*100}%;top:${30+Math.random()*60}%;width:${z}px;height:${z}px;animation-delay:${Math.random()*2}s;animation-duration:${2+Math.random()*2}s`;w.appendChild(d)}}

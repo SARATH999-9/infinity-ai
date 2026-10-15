@@ -13,6 +13,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 import config
+import docs
+import images
 import providers
 from auth import current_user, hash_password, make_token, verify_password
 from database import Conversation, Message, SessionLocal, User, get_db, init_db
@@ -33,6 +35,11 @@ print("[INFINITY AI] Google sign-in:", "on" if config.GOOGLE_CLIENT_ID else "off
 
 EMAIL = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 DATA_URL = re.compile(r"^data:(image/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)$")
+IMG_TAG = re.compile(r"\[\[IMAGE:\s*(.+?)(\]\]|$)", re.S)
+IMG_ASK = re.compile(
+    r"^\s*(please\s+)?((can|could|would)\s+you\s+)?(generate|create|make|draw|design|paint|render|give\s+me|show\s+me)\s+(me\s+)?"
+    r"(an?\s+|the\s+|some\s+)?([\w-]+\s+){0,2}?(image|picture|photo|logo|poster|wallpaper|illustration|drawing|painting|banner|icon)s?"
+    r"(?=\s+(of|for|showing|with|about|that|in|on|where)\b|\s*[.,!?]*\s*$)", re.I | re.S)
 
 
 class LoginIn(BaseModel):
@@ -103,12 +110,14 @@ def login(c: LoginIn, db: Session = Depends(get_db)):
 def google_login(body: GoogleIn, db: Session = Depends(get_db)):
     if not config.GOOGLE_CLIENT_ID:
         raise HTTPException(503, "Google sign-in is not set up. Add GOOGLE_CLIENT_ID to backend/.env.")
+    log.info("Google sign-in: credential received from the browser")
     try:
         from google.auth.transport import requests as grequests
         from google.oauth2 import id_token
         info = id_token.verify_oauth2_token(body.credential, grequests.Request(), config.GOOGLE_CLIENT_ID, clock_skew_in_seconds=10)
-    except ValueError:
-        raise HTTPException(401, "Google sign-in failed. Try again.")
+    except ValueError as e:
+        log.warning("Google sign-in rejected: %s", e)
+        raise HTTPException(401, "Google sign-in failed. Check that GOOGLE_CLIENT_ID matches the one in Google Cloud, and that your PC clock is correct.")
     except Exception:
         log.exception("google verification error")
         raise HTTPException(503, "Could not verify Google sign-in. Check your internet connection.")
@@ -130,6 +139,22 @@ def google_login(body: GoogleIn, db: Session = Depends(get_db)):
 @app.get("/api/me")
 def me(user: User = Depends(current_user)):
     return {"email": user.email, "name": shown_name(user)}
+
+
+class ExtractIn(BaseModel):
+    name: str = Field(max_length=120)
+    data: str = Field(max_length=9_000_000)
+
+
+@app.post("/api/extract")
+def extract(body: ExtractIn, user: User = Depends(current_user)):
+    try:
+        return {"text": docs.extract_text(body.name, body.data)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception:
+        log.exception("document extraction failed")
+        raise HTTPException(400, "Could not read that document.")
 
 
 # ---------- conversations ----------
@@ -229,24 +254,43 @@ def chat(body: ChatIn, user: User = Depends(current_user), db: Session = Depends
         raise HTTPException(400, "Nothing to answer.")
     cid = conv.id
 
+    last_user = next((m.content for m in reversed(rows) if m.role == "user"), "")
+    direct_image = (not body.images) and bool(IMG_ASK.search(last_user))
+
     def stream():
         parts: list[str] = []
+        pics: list[str] = []
         try:
-            for t in providers.stream_text(msgs, body.deep):
-                parts.append(t)
-                yield sse({"type": "delta", "text": t})
+            if direct_image:  # "create an image of ..." -> no chat model needed
+                text = "Here is your image."
+                parts.append(text)
+                yield sse({"type": "delta", "text": text})
+                yield sse({"type": "status", "kind": "image"})
+                pics.append(images.generate(last_user))
+                yield sse({"type": "image", "url": pics[0]})
+            else:
+                for t in providers.stream_text(msgs, body.deep):
+                    parts.append(t)
+                    yield sse({"type": "delta", "text": t})
+                tag = IMG_TAG.search("".join(parts))
+                if tag:  # the AI asked for a picture
+                    yield sse({"type": "status", "kind": "image"})
+                    pics.append(images.generate(tag.group(1)))
+                    yield sse({"type": "image", "url": pics[0]})
             yield sse({"type": "done"})
         except providers.AIError as e:
             log.error("AI error: %s", e.message)
             yield sse({"type": "error", "message": e.message})
+        except RuntimeError:
+            yield sse({"type": "error", "message": "The image could not be created right now. The free image service allows about one image every 15 seconds, so wait a moment and try again."})
         except Exception:
             log.exception("chat failed")
             yield sse({"type": "error", "message": "Something went wrong. Check the server window for details."})
         finally:  # also runs if the user presses stop, so partial answers are kept
-            text = "".join(parts)
-            if text:
+            text = IMG_TAG.sub("", "".join(parts)).strip()
+            if text or pics:
                 with SessionLocal() as s2:
-                    s2.add(Message(conversation_id=cid, role="assistant", content=text))
+                    s2.add(Message(conversation_id=cid, role="assistant", content=text, images=json.dumps(pics)))
                     c2 = s2.get(Conversation, cid)
                     if c2:
                         c2.updated_at = datetime.utcnow()
@@ -263,5 +307,17 @@ def health():
     return {"ok": True, "providers": [p.name for p in config.ACTIVE], "problem": config.KEY_PROBLEM or None}
 
 
+class NoCacheStatic(StaticFiles):
+    """Website files are always re-checked, so edits show up without clearing the browser cache."""
+
+    async def get_response(self, path, scope):
+        resp = await super().get_response(path, scope)
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
+
 FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
-app.mount("/", StaticFiles(directory=FRONTEND, html=True), name="web")
+_page = FRONTEND / "index.html"
+print(f"[INFINITY AI] Website folder: {FRONTEND}")
+print("[INFINITY AI] New input bar (+ menu) in that page:", "YES" if _page.exists() and "plusBtn" in _page.read_text(encoding="utf-8") else "NO - this index.html is the old version")
+app.mount("/", NoCacheStatic(directory=FRONTEND, html=True), name="web")

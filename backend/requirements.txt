@@ -8,3 +8,6 @@ bcrypt>=4.1
 python-dotenv>=1.0
 google-auth>=2.30
 requests>=2.31
+requests>=2.31
+pypdf>=4.0
+python-docx>=1.1
