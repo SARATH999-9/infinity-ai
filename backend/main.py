@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -149,12 +149,33 @@ class ExtractIn(BaseModel):
 @app.post("/api/extract")
 def extract(body: ExtractIn, user: User = Depends(current_user)):
     try:
-        return {"text": docs.extract_text(body.name, body.data)}
+        return docs.extract(body.name, body.data)
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception:
         log.exception("document extraction failed")
         raise HTTPException(400, "Could not read that document.")
+
+
+class ExportIn(BaseModel):
+    title: str = Field(default="INFINITY AI document", max_length=120)
+    markdown: str = Field(max_length=100000)
+
+
+@app.post("/api/export")
+def export_docx(body: ExportIn, user: User = Depends(current_user)):
+    """Turns an answer into a downloadable Word document."""
+    try:
+        data = docs.markdown_to_docx(body.title, body.markdown)
+    except Exception:
+        log.exception("docx export failed")
+        raise HTTPException(500, "Could not create the document.")
+    name = re.sub(r"[^\w\- ]+", "", body.title).strip().replace(" ", "_")[:60] or "document"
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{name}.docx"'},
+    )
 
 
 # ---------- conversations ----------
@@ -238,6 +259,8 @@ def chat(body: ChatIn, user: User = Depends(current_user), db: Session = Depends
         for img in body.images:
             if not DATA_URL.match(img) or len(img) > 4_000_000:
                 raise HTTPException(400, "One of the images is invalid or too large.")
+        if body.images and not providers.vision_providers():
+            raise HTTPException(400, providers.NO_VISION)
         ctx = "".join(f"[Attached file: {f.name}]\n```\n{f.text}\n```\n\n" for f in body.files)
         db.add(Message(
             conversation_id=conv.id, role="user", content=body.message,
@@ -281,8 +304,8 @@ def chat(body: ChatIn, user: User = Depends(current_user), db: Session = Depends
         except providers.AIError as e:
             log.error("AI error: %s", e.message)
             yield sse({"type": "error", "message": e.message})
-        except RuntimeError:
-            yield sse({"type": "error", "message": "The image could not be created right now. The free image service allows about one image every 15 seconds, so wait a moment and try again."})
+        except images.ImageError as e:
+            yield sse({"type": "error", "message": ("The image could not be created. " + str(e))[:320]})
         except Exception:
             log.exception("chat failed")
             yield sse({"type": "error", "message": "Something went wrong. Check the server window for details."})

@@ -298,7 +298,7 @@ function msgEl(m,i,last){const d=document.createElement("div");
     if(m.imgs&&m.imgs.length)d.innerHTML=`<div class="imgs">${m.imgs.map(s=>`<img src="${s}" alt="">`).join("")}</div>`;
     if(m.files&&m.files.length){const f=document.createElement("div");f.className="imgs";f.innerHTML=m.files.map(n=>`<div class="chip">${ic("file")}<span>${esc(n)}</span></div>`).join("");d.appendChild(f)}
     if(m.content){const b=document.createElement("div");b.className="b";b.textContent=m.content;d.appendChild(b)}}
-  else{d.className="m a";d.innerHTML=`<svg class="av"><use href="#inf"/></svg><div class="c"><div class="b">${md(m.content)}</div>${(m.imgs||[]).map(s=>`<div class="gimg"><img src="${s}" alt=""><a class="dl" href="${s}" download="infinity-ai.jpg" aria-label="Download">${ic("down")}</a></div>`).join("")}<div class="act" data-i="${i}"><button data-a="copy" aria-label="Copy">${ic("copy")}</button><button data-a="say" aria-label="Read aloud">${ic("spk")}</button>${last?`<button data-a="re" aria-label="Regenerate">${ic("re")}</button>`:""}</div></div>`}
+  else{d.className="m a";d.innerHTML=`<svg class="av"><use href="#inf"/></svg><div class="c"><div class="b">${md(m.content)}</div>${(m.imgs||[]).map(s=>`<div class="gimg"><img src="${s}" alt=""><a class="dl" href="${s}" download="infinity-ai.jpg" aria-label="Download">${ic("down")}</a></div>`).join("")}<div class="act" data-i="${i}"><button data-a="copy" aria-label="Copy">${ic("copy")}</button><button data-a="say" aria-label="Read aloud">${ic("spk")}</button><button data-a="doc" aria-label="Download as Word document">${ic("file")}</button>${last?`<button data-a="re" aria-label="Regenerate">${ic("re")}</button>`:""}</div></div>`}
   return d}
 function renderAll(){renderList();const c=chats.find(z=>z.id===cur);const w=$("wrap");w.innerHTML="";
   if(!c||!c.messages.length)w.innerHTML=`<div class="empty"><svg class="big" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#070706" stroke="#d4af37" stroke-width="1.2"/><path d="M32 32C27 22 15 22 15 32s12 10 17 0 17-10 17 0-12 10-17 0Z" fill="none" stroke="url(#g)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/><path class="trace" pathLength="160" d="M32 32C27 22 15 22 15 32s12 10 17 0 17-10 17 0-12 10-17 0Z" fill="none" stroke="#fff3bd" stroke-width="4.5" stroke-linecap="round"/></svg><div class="wm">INFINITY AI</div><div class="hi">${esc(greet())}${userName?", <b>"+esc(userName)+"</b>":""}</div></div>`;
@@ -318,7 +318,7 @@ async function addFiles(list){
       try{const b=new Uint8Array(await f.arrayBuffer());let bin="";for(let i=0;i<b.length;i+=32768)bin+=String.fromCharCode.apply(null,b.subarray(i,i+32768));
         const r=await api("/extract",{method:"POST",body:JSON.stringify({name:f.name,data:btoa(bin)})});const j=await r.json().catch(()=>({}));
         if(!r.ok)throw new Error(typeof j.detail==="string"?j.detail:"Could not read that document.");
-        pending.push({t:"txt",name:f.name,text:j.text});toast("")}catch(e){toast(e.message)}}
+        if(j.text)pending.push({t:"txt",name:f.name,text:j.text});(j.images||[]).slice(0,Math.max(0,6-pending.length)).forEach(u=>pending.push({t:"img",full:u,url:u}));toast(j.images&&j.images.length?"Scanned PDF: its pages will be read as pictures.":"")}catch(e){toast(e.message)}}
     else toast("Unsupported file. Use images, PDF, Word, or text and code files.")}
   renderThumbs()}
 function renderThumbs(){const T=$("thumbs");T.innerHTML="";
@@ -418,6 +418,10 @@ $("newBtn").onclick=()=>{if(busy)return;cur=null;renderAll();$("side").classList
 $("burger").onclick=()=>$("side").classList.toggle("open");
 $("clear").onclick=()=>{if(busy||!chats.length)return;if(confirm("Delete all chats?")){chats=[];cur=null;api("/conversations",{method:"DELETE"}).catch(()=>{});renderAll()}};
 const flash=(b,n)=>{b.innerHTML=ic("ok");setTimeout(()=>b.innerHTML=ic(n),1400)};
+async function downloadDoc(text){const t=stripTag(text);const h=t.match(/^#\s+(.+)$/m);const title=(h?h[1]:"INFINITY AI document").slice(0,80);
+  try{const r=await api("/export",{method:"POST",body:JSON.stringify({title,markdown:t})});if(!r.ok)throw new Error("Could not create the document.");
+    const b=await r.blob(),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=(title.replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")||"document")+".docx";
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}catch(e){toast(e.message)}}
 document.addEventListener("click",e=>{
   const cb=e.target.closest("[data-copy]");
   if(cb){const t=cb.closest(".cb").querySelector("code").textContent;
@@ -426,6 +430,7 @@ document.addEventListener("click",e=>{
   const c=chats.find(z=>z.id===cur),i=+ab.parentNode.dataset.i,m=c&&c.messages[i];if(!m)return;
   if(ab.dataset.a==="copy")(navigator.clipboard?navigator.clipboard.writeText(m.content):Promise.reject()).then(()=>flash(ab,"copy")).catch(()=>toast("Copy is blocked in this view."));
   else if(ab.dataset.a==="say"){stopSpeak();spoken=0;streamDone=true;feed(m.content,true)}
+  else if(ab.dataset.a==="doc"){downloadDoc(m.content)}
   else if(ab.dataset.a==="re"){c.messages.pop();save();run(c)}});
 addEventListener("keydown",e=>{if(e.key==="Escape"&&voiceMode)endVoice()});
 if(window.speechSynthesis)speechSynthesis.getVoices();

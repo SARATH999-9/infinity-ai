@@ -21,6 +21,7 @@ class Prov:
     model: str
     deep: str
     vision: bool
+    vision_model: str = ""
 
 
 # env = name of the .env variable that holds the key
@@ -28,11 +29,13 @@ PRESETS = {
     "gemini": dict(label="Google Gemini", base="https://generativelanguage.googleapis.com/v1beta/openai/",
                    model="gemini-2.5-flash", deep="gemini-2.5-flash", prefix="AIza", vision=True, env="GEMINI_API_KEY"),
     "groq": dict(label="Groq (Llama)", base="https://api.groq.com/openai/v1",
-                 model="llama-3.3-70b-versatile", deep="llama-3.3-70b-versatile", prefix="gsk_", vision=False, env="GROQ_API_KEY"),
+                 model="llama-3.3-70b-versatile", deep="llama-3.3-70b-versatile", prefix="gsk_", vision=True, vision_model="meta-llama/llama-4-scout-17b-16e-instruct", env="GROQ_API_KEY"),
     "openrouter": dict(label="OpenRouter", base="https://openrouter.ai/api/v1",
                        model="openai/gpt-oss-120b:free", deep="openai/gpt-oss-120b:free", prefix="sk-or-", vision=False, env="OPENROUTER_API_KEY"),
     "grok": dict(label="xAI Grok", base="https://api.x.ai/v1",
                  model="grok-4.3", deep="grok-4.3", prefix="xai-", vision=True, env="XAI_API_KEY"),
+    "openai": dict(label="OpenAI (GPT)", base="https://api.openai.com/v1",
+                   model="gpt-4.1", deep="gpt-4.1", prefix="sk-", vision=True, env="OPENAI_API_KEY"),
     "anthropic": dict(label="Anthropic Claude", base="",
                       model="claude-sonnet-5-5", deep="claude-opus-5-5", prefix="sk-ant-", vision=True, env="ANTHROPIC_API_KEY"),
     "ollama": dict(label="Ollama (on your PC)", base="http://localhost:11434/v1",
@@ -48,7 +51,7 @@ if order_env:
     names = [n.strip().lower() for n in order_env.split(",") if n.strip()]
 else:
     names = [LEGACY] if LEGACY in PRESETS else []
-    names += [n for n in ("gemini", "groq", "openrouter", "grok", "anthropic") if n not in names]
+    names += [n for n in ("anthropic", "openai", "gemini", "grok", "groq", "openrouter") if n not in names]
 
 ACTIVE: list[Prov] = []
 PROBLEMS: list[str] = []
@@ -71,13 +74,28 @@ for n in names:
     up = n.upper()
     model = _clean(os.getenv(f"{up}_MODEL", "")) or (_clean(os.getenv("MODEL", "")) if n == LEGACY else "") or p["model"]
     deep = _clean(os.getenv(f"{up}_DEEP_MODEL", "")) or (_clean(os.getenv("DEEP_MODEL", "")) if n == LEGACY else "") or p["deep"]
-    ACTIVE.append(Prov(n, p["label"], p["base"], key, model, deep, p["vision"]))
+    vmodel = _clean(os.getenv(f"{up}_VISION_MODEL", "")) or p.get("vision_model", "")
+    ACTIVE.append(Prov(n, p["label"], p["base"], key, model, deep, p["vision"], vmodel))
 
 KEY_PROBLEM = ""
 if not ACTIVE:
     KEY_PROBLEM = "No AI key found in backend/.env. Add GROQ_API_KEY or GEMINI_API_KEY (see README). " + " ".join(PROBLEMS)
 
 GOOGLE_CLIENT_ID = _clean(os.getenv("GOOGLE_CLIENT_ID", ""))
+
+# Image generation: tried in this order; "pollinations" is the free fallback and needs no key.
+IMAGE_KEYS = {
+    "openai": _clean(os.getenv("OPENAI_API_KEY", "")),
+    "gemini": _clean(os.getenv("GEMINI_API_KEY", "")),
+    "together": _clean(os.getenv("TOGETHER_API_KEY", "")),
+}
+IMAGE_MODELS = {
+    "openai": _clean(os.getenv("OPENAI_IMAGE_MODEL", "")) or "gpt-image-1",
+    "gemini": _clean(os.getenv("GEMINI_IMAGE_MODEL", "")) or "gemini-2.5-flash-image",
+    "together": _clean(os.getenv("TOGETHER_IMAGE_MODEL", "")) or "black-forest-labs/FLUX.1-schnell",
+}
+OPENAI_IMAGE_QUALITY = _clean(os.getenv("OPENAI_IMAGE_QUALITY", "")) or "medium"
+IMAGE_ORDER = [n.strip().lower() for n in (_clean(os.getenv("IMAGE_PROVIDERS", "")) or "openai,gemini,together,pollinations").split(",") if n.strip()]
 
 JWT_SECRET = _clean(os.getenv("JWT_SECRET", ""))
 if len(JWT_SECRET) < 24:  # no setup needed: make one and remember it
@@ -102,6 +120,10 @@ SYSTEM_PROMPT = (
     "If the user asks you to create, generate, draw or design an image, picture, logo, poster or other visual, "
     "reply with one short friendly sentence, then on a new last line write exactly "
     "[[IMAGE: a detailed English description of the image]] and nothing after it. Never say you cannot make images. "
+    "Write image descriptions that are specific and photorealistic unless the user asks for another style: "
+    "subject, setting, lighting, camera and lens, mood. "
+    "When asked for a document, report, letter, resume or similar, write the complete document in clean Markdown "
+    "that starts with a '# Title' line (the app shows a Word download button under every answer). "
     "Never claim to be human. If asked which model or company is behind you, say you are INFINITY AI, "
     "created by Sarath Chandra, and that you cannot share details of the underlying model."
 )

@@ -14,5 +14,17 @@ for cfg in config.ACTIVE:
     good += ok
     print(f"[{cfg.label}] {msg}")
 print("-" * 40)
+import images
+import sys
+print("Image providers (in order):", ", ".join(images.available()))
+if "--images" in sys.argv:
+    for n in images.available():
+        try:
+            images.PROVIDERS[n]("a red apple on a wooden table, photorealistic")
+            print(f"  [{n}] OK, an image was created")
+        except Exception as e:
+            print(f"  [{n}] FAILED: {str(e)[:200]}")
+else:
+    print("  (run 'python check_key.py --images' to test image creation; paid providers charge a few cents)")
 print("Google sign-in:", "configured" if config.GOOGLE_CLIENT_ID else "not set up (optional: add GOOGLE_CLIENT_ID)")
 print("RESULT:", f"{good} of {len(config.ACTIVE)} provider(s) working." + ("" if good else " Chat will not work until one works."))

@@ -58,7 +58,8 @@ def _openai_stream(cfg, msgs, model, max_tokens):
         else:
             note = "[The user attached an image, but you cannot see images. Say so politely.]\n" if m["images"] else ""
             out.append({"role": "user", "content": note + m["text"]})
-    stream = _client(cfg).chat.completions.create(model=model, messages=out, max_tokens=max_tokens, stream=True)
+    limit = {"max_completion_tokens": max_tokens} if cfg.name == "openai" else {"max_tokens": max_tokens}
+    stream = _client(cfg).chat.completions.create(model=model, messages=out, stream=True, **limit)
     for chunk in stream:
         if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
             yield chunk.choices[0].delta.content
@@ -95,10 +96,13 @@ def _classify(e):
 
 
 _SKIP = ("whisper", "guard", "tts", "embed", "moderation", "orpheus", "playai", "image", "imagen", "veo", "audio", "live", "aqa")
-_PREFER = ("llama-3.3-70b", "llama-3.1-70b", "llama-3.3", "llama-3.1-8b", "llama", "gpt-oss", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash", "gemini", "grok")
+_PREFER = ("llama-3.3-70b", "llama-3.1-70b", "llama-3.3", "llama-3.1-8b", "llama", "gpt-oss", "gpt-4.1", "gpt-4o", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash", "gemini", "grok")
 
 
-def _discover(cfg):
+_VPREFER = ("llama-4-scout", "scout", "llama-4-maverick", "maverick", "vision", "gemini", "gpt-4", "grok")
+
+
+def _discover(cfg, vision=False):
     """Ask the provider which models exist and pick a good chat model."""
     try:
         ids = [m.id.replace("models/", "") for m in _client(cfg).models.list()]
@@ -108,26 +112,40 @@ def _discover(cfg):
     ids = [i for i in ids if not any(b in i.lower() for b in _SKIP)]
     if cfg.name == "openrouter":
         ids = [i for i in ids if i.endswith(":free")] or ids
-    for p in _PREFER:
+    for p in (_VPREFER if vision else _PREFER):
         for i in ids:
             if p in i.lower():
                 return i
-    return ids[0] if ids else None
+    return None if vision else (ids[0] if ids else None)
+
+
+_novision: set = set()  # providers whose vision model turned out to be unavailable
+NO_VISION = ("None of your AI providers can see images or scanned PDFs. Add a free GEMINI_API_KEY "
+             "(aistudio.google.com/app/apikey) to backend/.env and restart the server.")
+
+
+def vision_providers():
+    return [c for c in config.ACTIVE if c.vision and c.name not in _novision]
 
 
 def stream_text(msgs, deep=False):
     has_img = bool(msgs and msgs[-1].get("images"))
-    order = sorted(config.ACTIVE, key=lambda c: 0 if (has_img and c.vision) else 1)
+    seers = vision_providers()
+    if has_img and not seers:
+        raise AIError(NO_VISION)
+    order = seers if (has_img and seers) else list(config.ACTIVE)  # photos go only to providers that can see them
     problems = []
     for cfg in order:
-        until, why = _cool.get(cfg.name, (0, ""))
+        use_v = has_img and bool(cfg.vision_model)
+        mkey = cfg.name + (":v" if use_v else "")
+        until, why = _cool.get(mkey, (0, ""))
         if until > time.time():
             problems.append(f"{cfg.label}: {why}")
             continue
         started = False
         retried = False
         while True:
-            model = _model.get(cfg.name) or (cfg.deep if deep else cfg.model)
+            model = _model.get(mkey) or (cfg.vision_model if use_v else (cfg.deep if deep else cfg.model))
             try:
                 for t in _run(cfg, msgs, model, deep):
                     started = True
@@ -140,16 +158,21 @@ def stream_text(msgs, deep=False):
                     raise AIError(f"The reply was cut off ({cfg.label}: {why}). Send your message again.")
                 if kind == "model" and not retried and cfg.name != "anthropic":
                     retried = True
-                    found = _discover(cfg)
+                    found = _discover(cfg, vision=use_v)
                     if found and found != model:
                         log.warning("%s: switching model %s -> %s", cfg.label, model, found)
-                        _model[cfg.name] = found
+                        _model[mkey] = found
                         continue
+                if use_v and kind == "model":
+                    _novision.add(cfg.name)
+                    log.warning("%s has no usable vision model; photos will use other providers", cfg.label)
                 secs = {"auth": 900, "model": 900, "perm": 900, "credit": 900, "rate": 60, "conn": 20, "server": 30, "bad": 0}.get(kind, 30)
                 if secs:
-                    _cool[cfg.name] = (time.time() + secs, why)
+                    _cool[mkey] = (time.time() + secs, why)
                 problems.append(f"{cfg.label}: {why}")
                 break
+    if has_img and not vision_providers():
+        raise AIError(NO_VISION)
     raise AIError("No AI provider could answer. " + " | ".join(problems) + ". Run 'python check_key.py' to see details.")
 
 
