@@ -17,6 +17,7 @@ A ChatGPT-style assistant with a black and gold interface.
 2. Unzip, then double-click **run.bat**.
 3. When Notepad opens, paste your key(s) (see below), press Ctrl+S, close Notepad.
 4. The browser opens at http://localhost:8000.
+5. Everyone can view link at https://infinityai.mooo.com
 
 ### Windows PowerShell (manual)
 ```powershell
