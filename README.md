@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+<<<<<< HEAD
 # INFINITY AI  (powered by Sarath Chandra)
 
 A ChatGPT-style assistant with a black and gold interface.
