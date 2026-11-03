@@ -223,7 +223,7 @@ main.home .composer{padding:0 18px}
 .empty h1 b{font-weight:500;background:linear-gradient(100deg,#b8892a,#fff1b0 50%,#d4af37);-webkit-background-clip:text;background-clip:text;color:transparent}
 .box2{max-width:780px;margin:0 auto;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(14px);border-radius:24px;padding:12px 12px 8px;transition:.2s;display:flex;flex-direction:column}
 .box2:focus-within{border-color:var(--gold);box-shadow:0 0 24px rgba(212,175,55,.18)}
-.box2 textarea{padding:4px 6px 10px;min-height:28px}
+.box2 textarea{padding:4px 6px 10px;min-height:28px;outline:0;box-shadow:none;border:0}
 .brow{display:flex;align-items:center;gap:6px}
 .brow .ib{border-color:transparent}.brow #send{border:0}
 .brow .gap{flex:1}
@@ -287,6 +287,23 @@ body.sc #burger{display:grid}
 .lg button{display:flex;width:100%;justify-content:space-between;padding:11px 12px;border-radius:10px}
 .lg button:hover{background:rgba(212,175,55,.09)}.lg button.on{color:var(--gold2)}
 @media(max-width:760px){.plans{grid-template-columns:1fr}.seg button{padding:5px 10px}.model b{display:none}.model{padding:6px 4px}.brow{gap:2px}.seg button{padding:5px 9px}main.home{padding-bottom:12vh}.planpill{top:calc(64px + env(safe-area-inset-top,0px))}.empty{flex-direction:column;text-align:center}}
+
+/* video */
+.gimg video{display:block;width:100%;height:auto;max-height:72vh;background:#000}
+.gimg.vid{max-width:600px}
+.gimg.vsk{aspect-ratio:16/9;max-width:600px;display:grid;place-items:center;text-align:center;padding:18px;color:var(--mute);font-size:14px;line-height:1.5}
+.gimg.vsk b{display:block;color:var(--gold2);font-weight:600;margin-bottom:4px}
+/* tables in answers */
+.b .tw{overflow-x:auto;margin:.7em 0 1em;border:1px solid #3a2f13;border-radius:12px;background:rgba(16,13,7,.7)}
+.b table{border-collapse:collapse;width:100%;min-width:320px;font-size:.93em;line-height:1.45}
+.b th{background:linear-gradient(180deg,#2a2110,#1d170a);color:var(--gold2);font-weight:600;text-align:left;padding:10px 14px;white-space:nowrap;border-bottom:1px solid #5a4817}
+.b td{padding:9px 14px;border-top:1px solid #2a2412;vertical-align:top}
+.b tbody tr:nth-child(even){background:rgba(212,175,55,.04)}
+.b tbody tr:hover{background:rgba(212,175,55,.09)}
+.b td:first-child{font-weight:600;color:var(--ink)}
+.b hr{border:0;border-top:1px solid var(--line);margin:1em 0}
+.b blockquote{margin:.6em 0;padding:.3em 1em;border-left:3px solid var(--gold);color:var(--mute)}
+.b em{color:#e8dcae}
 </style>
 </head>
 <body class="locked">
@@ -311,6 +328,7 @@ body.sc #burger{display:grid}
 <symbol id="file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v4h4"/></symbol>
 <symbol id="photo" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></symbol>
 <symbol id="down" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
+<symbol id="film" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.500v5l4.500-2.500z"/></symbol>
 <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
 <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
 <symbol id="globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></symbol>
@@ -336,6 +354,7 @@ body.sc #burger{display:grid}
     <button class="nv on" id="newBtn"><svg class="i"><use href="#plus"/></svg>New chat</button>
     <button class="nv" id="navSearch"><svg class="i"><use href="#search"/></svg>Search<kbd>Ctrl K</kbd></button>
     <button class="nv" id="navImage"><svg class="i"><use href="#photo"/></svg>Create image</button>
+    <button class="nv" id="navVideo"><svg class="i"><use href="#film"/></svg>Create video</button>
     <button class="nv" id="navDocs"><svg class="i"><use href="#file"/></svg>Documents</button>
     <button class="nv" id="navVoice"><svg class="i"><use href="#wave"/></svg>Voice assistant</button>
   </nav>
@@ -377,12 +396,13 @@ body.sc #burger{display:grid}
             <button id="mFile"><svg class="i"><use href="#clip"/></svg>Files and documents</button>
             <div class="hr"></div>
             <button id="mImage"><svg class="i"><use href="#spark"/></svg>Create image</button>
+            <button id="mVideo"><svg class="i"><use href="#film"/></svg>Create video<span class="tag">PRO</span></button>
             <button id="mDeep"><svg class="i"><use href="#bulb"/></svg>Deep thinking<span class="tag">PRO</span></button>
           </div>
         </div>
         <input type="file" id="fPhoto" accept="image/*" multiple hidden>
         <input type="file" id="fDoc" accept=".pdf,.docx,.txt,.md,.csv,.json,.js,.ts,.py,.html,.css,.java,.c,.cpp,.xml,.sql,.log,.yml,.yaml" multiple hidden>
-        <div class="seg"><button id="segChat" class="on">Chat</button><button id="segImg">Image</button></div>
+        <div class="seg"><button id="segChat" class="on">Chat</button><button id="segImg">Image</button><button id="segVid">Video</button></div>
         <span class="gap"></span>
         <button class="model" id="modelBtn" aria-label="Answer depth"><b>INFINITY AI</b> <span id="modelLvl">Standard</span></button>
         <button class="ib" id="vmode" aria-label="Voice assistant"><svg class="i"><use href="#wave"/></svg></button>
@@ -423,17 +443,28 @@ function save(){}
 async function load(){try{const r=await api("/conversations");chats=r.ok?await r.json():[]}catch(e){chats=[]}}
 function toast(t){const T=$("toast");T.textContent=t;if(/limit reached|Pro feature/i.test(t||"")&&token)setTimeout(()=>openUpgrade(t),250);if(t)setTimeout(()=>{if(T.textContent===t)T.textContent=""},4500)}
 const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-function inline(s){return esc(s).replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")}
+function inline(s){return esc(s).replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>").replace(/(^|[\s(])\*([^*\s][^*]*)\*(?=$|[\s).,;:!?])/g,"$1<em>$2</em>")}
+const isRow=l=>/^\s*\|.*\|\s*$/.test(l);
+const isSep=l=>/^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l)&&l.includes("-");
+const cells=l=>l.trim().replace(/^\|/,"").replace(/\|$/,"").split("|").map(c=>c.trim());
+function tableHTML(rows){const head=cells(rows[0]),al=cells(rows[1]).map(c=>/^:-+:$/.test(c)?"center":/-:$/.test(c)?"right":"left"),n=head.length;
+  const td=(t,i,tag)=>`<${tag} style="text-align:${al[i]||"left"}">${inline(t||"")}</${tag}>`;
+  const body=rows.slice(2).map(r=>{const c=cells(r);while(c.length<n)c.push("");return "<tr>"+c.slice(0,n).map((t,i)=>td(t,i,"td")).join("")+"</tr>"}).join("");
+  return `<div class="tw"><table><thead><tr>${head.map((t,i)=>td(t,i,"th")).join("")}</tr></thead><tbody>${body}</tbody></table></div>`}
 function md(t){let out="";
   t.split(/```/).forEach((p,i)=>{
     if(i%2){const nl=p.indexOf("\n");const lang=(nl<0?"":p.slice(0,nl)).trim()||"code";const code=p.slice(nl+1).replace(/\n$/,"");
       out+=`<div class="cb"><div class="t"><span>${esc(lang)}</span><button data-copy aria-label="Copy code">${ic("copy")}</button></div><pre><code>${esc(code)}</code></pre></div>`;return}
     let h="",list=null;const close=()=>{if(list){h+=`</${list}>`;list=null}};
-    p.split("\n").forEach(l=>{let m;
+    const L=p.split("\n");
+    for(let k=0;k<L.length;k++){const l=L[k];let m;
+      if(isRow(l)&&k+1<L.length&&isSep(L[k+1])){close();const rows=[l,L[k+1]];k+=2;while(k<L.length&&isRow(L[k])){rows.push(L[k]);k++}k--;h+=tableHTML(rows);continue}
       if(m=l.match(/^\s*[-*]\s+(.*)/)){if(list!=="ul"){close();h+="<ul>";list="ul"}h+=`<li>${inline(m[1])}</li>`}
       else if(m=l.match(/^\s*\d+[.)]\s+(.*)/)){if(list!=="ol"){close();h+="<ol>";list="ol"}h+=`<li>${inline(m[1])}</li>`}
       else if(m=l.match(/^#{1,4}\s+(.*)/)){close();h+=`<h3>${inline(m[1])}</h3>`}
-      else if(l.trim()===""){close()}else{close();h+=`<p>${inline(l)}</p>`}});
+      else if(/^\s*(-{3,}|\*{3,})\s*$/.test(l)){close();h+="<hr>"}
+      else if(m=l.match(/^\s*>\s?(.*)/)){close();h+=`<blockquote>${inline(m[1])}</blockquote>`}
+      else if(l.trim()===""){close()}else{close();h+=`<p>${inline(l)}</p>`}}
     close();out+=h});return out}
 /* ---------- background effect ---------- */
 (function(){const cv=$("bg"),x=cv.getContext("2d");let W,H,P=[],mx=-999,my=-999;
@@ -455,12 +486,15 @@ function renderList(){const L=$("list");L.innerHTML="";
     d.onclick=()=>{if(busy)return;cur=c.id;renderAll();$("side").classList.remove("open")};
     d.querySelector("button").onclick=e=>{e.stopPropagation();if(busy)return;chats=chats.filter(z=>z.id!==c.id);if(cur===c.id)cur=null;api("/conversations/"+c.id,{method:"DELETE"}).catch(()=>{});renderAll()};
     L.appendChild(d)})}
+const isVid=u=>/\.mp4(\?|$)/i.test(u||"");
+const videoHTML=u=>`<video src="${u}" controls loop playsinline preload="metadata"></video><a class="dl" href="${u}" download="infinity-ai.mp4" aria-label="Download video">${ic("down")}</a>`;
+const fmtSec=n=>n<60?n+"s":Math.floor(n/60)+"m "+(n%60)+"s";
 function msgEl(m,i,last){const d=document.createElement("div");
   if(m.role==="user"){d.className="m u";
     if(m.imgs&&m.imgs.length)d.innerHTML=`<div class="imgs">${m.imgs.map(s=>`<img src="${s}" alt="">`).join("")}</div>`;
     if(m.files&&m.files.length){const f=document.createElement("div");f.className="imgs";f.innerHTML=m.files.map(n=>`<div class="chip">${ic("file")}<span>${esc(n)}</span></div>`).join("");d.appendChild(f)}
     if(m.content){const b=document.createElement("div");b.className="b";b.textContent=m.content;d.appendChild(b)}}
-  else{d.className="m a";d.innerHTML=`<svg class="av"><use href="#inf"/></svg><div class="c"><div class="b">${md(m.content)}</div>${(m.imgs||[]).map(s=>`<div class="gimg"><img src="${s}" alt=""><a class="dl" href="${s}" download="infinity-ai.jpg" aria-label="Download">${ic("down")}</a></div>`).join("")}<div class="act" data-i="${i}"><button data-a="copy" aria-label="Copy">${ic("copy")}</button><button data-a="say" aria-label="Read aloud">${ic("spk")}</button><button data-a="doc" aria-label="Download as Word document">${ic("file")}</button>${last?`<button data-a="re" aria-label="Regenerate">${ic("re")}</button>`:""}</div></div>`}
+  else{d.className="m a";d.innerHTML=`<svg class="av"><use href="#inf"/></svg><div class="c"><div class="b">${md(m.content)}</div>${(m.imgs||[]).map(s=>isVid(s)?`<div class="gimg vid">${videoHTML(s)}</div>`:`<div class="gimg"><img src="${s}" alt=""><a class="dl" href="${s}" download="infinity-ai.jpg" aria-label="Download">${ic("down")}</a></div>`).join("")}<div class="act" data-i="${i}"><button data-a="copy" aria-label="Copy">${ic("copy")}</button><button data-a="say" aria-label="Read aloud">${ic("spk")}</button><button data-a="doc" aria-label="Download as Word document">${ic("file")}</button>${last?`<button data-a="re" aria-label="Regenerate">${ic("re")}</button>`:""}</div></div>`}
   return d}
 function renderAll(){renderList();const c=chats.find(z=>z.id===cur);const w=$("wrap");w.innerHTML="";$("main").classList.toggle("home",!c||!c.messages.length);
   if(!c||!c.messages.length)w.innerHTML=emptyHTML();
@@ -546,9 +580,11 @@ async function send(){
   if(!c){c={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),title:(text||(txts[0]&&txts[0].name)||"Photo").slice(0,40),messages:[]};chats.unshift(c);cur=c.id}
   let content=text||(imgs.length?"Describe this image.":"Summarize this file.");
   if(imageMode&&text&&!imgs.length&&!/^\s*(create|generate|draw|make)\b.*\b(image|picture|photo|logo|poster|illustration)\b/i.test(text))content="Create an image of "+text;
+  const asVideo=videoMode&&!!text&&!imgs.length;
+  if(asVideo&&!/^\s*(create|generate|make|produce|animate)\b.*\b(video|clip|animation)\b/i.test(text))content="Create a video of "+text;
   c.messages.push({role:"user",content,imgs:imgs.map(i=>i.full),files:txts.map(t=>t.name)});
   $("in").value="";$("vt").textContent="";autosize();
-  run(c,{message:content,images:imgs.map(i=>i.full),files:txts.map(t=>({name:t.name,text:t.text}))})}
+  run(c,{message:content,video:asVideo,images:imgs.map(i=>i.full),files:txts.map(t=>({name:t.name,text:t.text}))})}
 const stripTag=t=>t.replace(/\[\[IMAGE:[\s\S]*?\]\]/g,"").replace(/\[\[IMAGE:[\s\S]*$/,"").replace(/\[{1,2}(I(M(A(G(E)?)?)?)?)?:?$/,"");
 async function run(c,payload){
   const speakThis=speakOn||viaVoice;viaVoice=false;renderAll();
@@ -564,7 +600,10 @@ async function run(c,payload){
       let k;while((k=buf.indexOf("\n\n"))>=0){const line=buf.slice(0,k).trim();buf=buf.slice(k+2);if(!line.startsWith("data:"))continue;
         const ev=JSON.parse(line.slice(5));
         if(ev.type==="delta"){reply+=ev.text;b.innerHTML=md(stripTag(reply))+'<span class="cur"></span>';scroll();if(speakThis)feed(stripTag(reply),false)}
+        else if(ev.type==="status"&&ev.kind==="video"){let sk=$("sk");if(!sk){holder.querySelector(".c").insertAdjacentHTML("beforeend",'<div class="gimg sk vsk" id="sk"><div></div></div>');sk=$("sk")}
+          sk.firstChild.innerHTML="<b>Creating your video...</b>"+fmtSec(ev.seconds||0)+" so far. This usually takes 1 to 3 minutes, please keep this page open.";scroll()}
         else if(ev.type==="status"){holder.querySelector(".c").insertAdjacentHTML("beforeend",'<div class="gimg sk" id="sk"></div>');scroll()}
+        else if(ev.type==="video"){pics.push(ev.url);const sk=$("sk");if(sk){sk.className="gimg vid";sk.removeAttribute("id");sk.innerHTML=videoHTML(ev.url)}scroll()}
         else if(ev.type==="image"){pics.push(ev.url);const sk=$("sk");if(sk){sk.className="gimg";sk.removeAttribute("id");sk.innerHTML=`<img src="${ev.url}" alt="">`}scroll()}
         else if(ev.type==="error")throw new Error(ev.message)}}
   }catch(e){fail=e}
@@ -596,7 +635,7 @@ document.addEventListener("click",e=>{
   else if(ab.dataset.a==="re"){c.messages.pop();save();run(c)}});
 addEventListener("keydown",e=>{if(e.key==="Escape"&&voiceMode)endVoice()});
 if(window.speechSynthesis)speechSynthesis.getVoices();
-let userName="",authMode="login",gcfg=null,userEmail="",userPlan="free",planUntil=null,imageMode=false;
+let userName="",authMode="login",gcfg=null,userEmail="",userPlan="free",planUntil=null,imageMode=false,videoMode=false;
 const greet=()=>{const h=new Date().getHours();return h<12?"Good morning":h<17?"Good afternoon":"Good evening"};
 const setLocked=v=>document.body.classList.toggle("locked",v);
 function showAuth(){setLocked(true);$("auth").classList.add("show")}
@@ -678,8 +717,9 @@ function paintPlan(){const pro=isPro();
   pp.innerHTML=pro?"Pro plan \u00B7 active until "+(planUntil?fmtDate(planUntil):""):'Free plan \u00B7 <a id="pillUp">Upgrade</a>';
   $("modelBtn").classList.toggle("lock",!pro);$("modelLvl").textContent=deep?"Deep":"Standard";$("mDeep").style.opacity=pro?1:.85}
 function toggleDeep(){if(!isPro()){openUpgrade("Deep thinking is a Pro feature.");return false}deep=!deep;paintPlan();return true}
-function setImageMode(v){imageMode=v;$("segImg").classList.toggle("on",v);$("segChat").classList.toggle("on",!v);
-  $("in").placeholder=v?"Describe the image you want...":"Message INFINITY AI  (type / for tools)"}
+function setMode(m){imageMode=m==="image";videoMode=m==="video";$("segImg").classList.toggle("on",imageMode);$("segVid").classList.toggle("on",videoMode);$("segChat").classList.toggle("on",m==="chat");
+  $("in").placeholder=imageMode?"Describe the image you want...":videoMode?"Describe the video you want (takes 1 to 3 minutes)...":"Message INFINITY AI  (type / for tools)"}
+const setImageMode=v=>setMode(v?"image":"chat");
 /* sidebar nav */
 const closeSide=()=>$("side").classList.remove("open");
 $("navSearch").onclick=()=>{closeSide();openSearch()};
@@ -689,8 +729,11 @@ $("navVoice").onclick=()=>{closeSide();$("vmode").click()};
 $("collapse").onclick=()=>{if(innerWidth<=760)closeSide();else document.body.classList.add("sc")};
 $("burger").onclick=()=>{if(document.body.classList.contains("sc"))document.body.classList.remove("sc");else $("side").classList.toggle("open")};
 /* composer extras */
-$("segChat").onclick=()=>setImageMode(false);
-$("segImg").onclick=()=>{setImageMode(true);$("in").focus()};
+$("segChat").onclick=()=>setMode("chat");
+$("segImg").onclick=()=>{setMode("image");$("in").focus()};
+$("segVid").onclick=()=>{setMode("video");$("in").focus()};
+$("mVideo").onclick=()=>{$("addMenu").classList.remove("show");setMode("video");$("in").focus()};
+$("navVideo").onclick=()=>{closeSide();if(busy)return;cur=null;renderAll();setMode("video");$("in").focus()};
 $("modelBtn").onclick=()=>toggleDeep();
 $("mImage").onclick=()=>{$("addMenu").classList.remove("show");setImageMode(true);$("in").focus()};
 $("mDeep").onclick=()=>{$("addMenu").classList.remove("show");toggleDeep()};
@@ -737,6 +780,7 @@ function openLang(){const cur=getLang();
 function openHelp(){openMdl(`<h3>Get help</h3><p class="sub2">Quick answers about INFINITY AI.</p>
   <div class="row"><div>Send photos, PDFs or documents<small>Press + , drag and drop a file, or paste an image into the message box.</small></div></div>
   <div class="row"><div>Create an image<small>Switch the box to Image, or type "Create an image of ..." and send.</small></div></div>
+  <div class="row"><div>Create a video<small>Switch the box to Video (Pro plan), describe the scene and send. A 6 second clip takes 1 to 3 minutes.</small></div></div>
   <div class="row"><div>Talk to INFINITY AI<small>Press the voice button. Press Esc to stop. Pick your voice language in Language.</small></div></div>
   <div class="row"><div>Download as Word<small>Ask for a letter, report or resume, then press the document icon under the answer.</small></div></div>
   <div class="row"><div>Daily limits and Pro<small>Free accounts have a daily message limit. Upgrade plan raises it and unlocks deep thinking.</small></div></div>
@@ -774,7 +818,7 @@ function openUpgrade(note,auto){
   const pro=isPro(),pr=price(),days=(gcfg&&gcfg.pro_days)||30,fl=(gcfg&&gcfg.free_limit)||25,pl=(gcfg&&gcfg.pro_limit)||200;
   openMdl(`<h3>${pro?"You are on Pro":"Upgrade your plan"}</h3><p class="sub2">${note?esc(note)+" ":""}${pro?"Active until "+fmtDate(planUntil)+". Pay again to add "+days+" more days.":"More messages and deep thinking. One small payment, no auto-renewal."}</p>
   <div class="plans"><div class="pc free"><h4>Free</h4><div class="price">\u20B90</div><ul><li>${fl} messages per day</li><li>Voice, files, photos, images</li><li>Standard answers</li></ul></div>
-  <div class="pc pro"><h4>Pro</h4><div class="price">${pr}<small> / ${days} days</small></div><ul><li>${pl} messages per day</li><li>Deep thinking mode</li><li>Everything in Free</li></ul></div></div>
+  <div class="pc pro"><h4>Pro</h4><div class="price">${pr}<small> / ${days} days</small></div><ul><li>${pl} messages per day</li><li>Deep thinking mode</li>${gcfg&&gcfg.pro_videos>0?`<li>Video creation (${gcfg.pro_videos} per day)</li>`:""}<li>Everything in Free</li></ul></div></div>
   <button class="pri" id="payBtn" style="width:100%"><span>${pro?"Pay "+pr+" and extend":"Pay "+pr+" and upgrade"}</span><i class="spin"></i></button>
   <div id="pm" role="status"></div><div class="fine">Secure payment by Razorpay. Scan the UPI QR with any UPI app, or use cards and netbanking.</div>`);
   $("payBtn").onclick=startPay;

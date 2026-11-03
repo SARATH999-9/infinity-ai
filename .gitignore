@@ -1,6 +1,18 @@
+﻿# Secrets and environment files
 .env
-*.db
-__pycache__/
-.venv/
-
+.env.*
+!.env.example
+*.bak
 .jwt_secret
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Databases
+*.db
+
+# Generated media
+backend/media/

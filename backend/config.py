@@ -87,6 +87,8 @@ GOOGLE_CLIENT_ID = _clean(os.getenv("GOOGLE_CLIENT_ID", ""))
 IMAGE_KEYS = {
     "openai": _clean(os.getenv("OPENAI_API_KEY", "")),
     "gemini": _clean(os.getenv("GEMINI_API_KEY", "")),
+    "imagen": _clean(os.getenv("GEMINI_API_KEY", "")),  # same Gemini key (paid billing needed)
+    "magichour": _clean(os.getenv("MAGIC_HOUR_API_KEY", "")),  # FREE key: magichour.ai/developer
     "stability": _clean(os.getenv("STABILITY_API_KEY", "")),
     "together": _clean(os.getenv("TOGETHER_API_KEY", "")),
     "huggingface": _clean(os.getenv("HF_TOKEN", "")) or _clean(os.getenv("HUGGINGFACE_API_KEY", "")),
@@ -97,18 +99,37 @@ CLOUDFLARE_ACCOUNT_ID = _clean(os.getenv("CLOUDFLARE_ACCOUNT_ID", ""))
 if CLOUDFLARE_ACCOUNT_ID:
     IMAGE_KEYS["cloudflare"] = _clean(os.getenv("CLOUDFLARE_API_TOKEN", ""))
 IMAGE_MODELS = {
-    "openai": _clean(os.getenv("OPENAI_IMAGE_MODEL", "")) or "gpt-image-1",
+    "openai": _clean(os.getenv("OPENAI_IMAGE_MODEL", "")) or "gpt-image-2",
     "gemini": _clean(os.getenv("GEMINI_IMAGE_MODEL", "")) or "gemini-2.5-flash-image",
+    "imagen": _clean(os.getenv("IMAGEN_MODEL", "")) or "imagen-4.0-fast-generate-001",
+    "magichour": _clean(os.getenv("MAGIC_HOUR_IMAGE_MODELS", "")) or "z-image-turbo,flux-2-klein",  # free-plan models, tried in order. Best accuracy: nano-banana (50 credits each)
     "stability": _clean(os.getenv("STABILITY_IMAGE_MODEL", "")) or "core",  # core | ultra | sd3
     "together": _clean(os.getenv("TOGETHER_IMAGE_MODEL", "")) or "black-forest-labs/FLUX.1-schnell",
     "huggingface": _clean(os.getenv("HF_IMAGE_MODEL", "")) or "black-forest-labs/FLUX.1-schnell",
     "cloudflare": _clean(os.getenv("CLOUDFLARE_IMAGE_MODEL", "")) or "@cf/black-forest-labs/flux-1-schnell",
-    "pollinations": _clean(os.getenv("POLLINATIONS_MODEL", "")) or "flux",
+    "pollinations": _clean(os.getenv("POLLINATIONS_MODEL", "")) or "gptimage,flux",  # tried in this order; comma list. Others: nanobanana, seedream, kontext, turbo
 }
 OPENAI_IMAGE_QUALITY = _clean(os.getenv("OPENAI_IMAGE_QUALITY", "")) or "medium"
 # Let the chat AI rewrite short image requests into rich photorealistic prompts (set to 0 to turn off)
+# A vision AI checks each picture against the request and regenerates bad ones (needs a Gemini or Groq key; set 0 to turn off)
+IMAGE_VERIFY = (_clean(os.getenv("IMAGE_VERIFY", "")) or "1") not in ("0", "false", "no")
+IMAGE_MAX_TRIES = max(1, int(_clean(os.getenv("IMAGE_MAX_TRIES", "")) or "3"))  # pictures made per request at most
+IMAGE_SHOW_PROVIDER = (_clean(os.getenv("IMAGE_SHOW_PROVIDER", "")) or "1") not in ("0", "false", "no")  # small "Made with ..." note under pictures
 IMAGE_SMART_PROMPT = (_clean(os.getenv("IMAGE_SMART_PROMPT", "")) or "1") not in ("0", "false", "no")
-IMAGE_ORDER = [n.strip().lower() for n in (_clean(os.getenv("IMAGE_PROVIDERS", "")) or "openai,gemini,stability,together,cloudflare,huggingface,pollinations").split(",") if n.strip()]
+IMAGE_ORDER = [n.strip().lower() for n in (_clean(os.getenv("IMAGE_PROVIDERS", "")) or "openai,gemini,imagen,stability,together,magichour,cloudflare,huggingface,pollinations").split(",") if n.strip()]
+
+# ---- Video (paid: Google Veo with your Gemini key; or Pollinations video models) ----
+VIDEO_KEYS = {"veo": IMAGE_KEYS["gemini"], "magichour": _clean(os.getenv("MAGIC_HOUR_API_KEY", "")), "pollinations": IMAGE_KEYS["pollinations"]}
+MAGIC_HOUR_MODEL = _clean(os.getenv("MAGIC_HOUR_MODEL", "")) or "default"      # free accounts get a free model (default); others: wan-2.2, ltx-2.5, seedance-2.0-mini
+MAGIC_HOUR_SECONDS = int(_clean(os.getenv("MAGIC_HOUR_SECONDS", "")) or "4")    # free credits are small: 4 seconds fits the daily free credits
+MAGIC_HOUR_RESOLUTION = _clean(os.getenv("MAGIC_HOUR_RESOLUTION", "")) or "480p"  # free accounts: 480p
+VEO_MODEL = _clean(os.getenv("VEO_MODEL", "")) or "veo-3.1-lite-generate-preview"  # also: veo-3.1-fast-generate-preview
+POLLINATIONS_VIDEO_MODELS = [m.strip() for m in (_clean(os.getenv("POLLINATIONS_VIDEO_MODEL", "")) or "seedance,veo").split(",") if m.strip()]
+VIDEO_ORDER = [n.strip().lower() for n in (_clean(os.getenv("VIDEO_PROVIDERS", "")) or "veo,magichour,pollinations").split(",") if n.strip()]
+VIDEO_SECONDS = int(_clean(os.getenv("VIDEO_SECONDS", "")) or "6")      # length of each clip
+FREE_VIDEO_LIMIT = int(_clean(os.getenv("FREE_VIDEO_LIMIT", "")) or "0")  # videos per day on the Free plan (0 = Pro only)
+PRO_VIDEO_LIMIT = int(_clean(os.getenv("PRO_VIDEO_LIMIT", "")) or "3")    # videos per day on Pro
+VIDEO_KEEP_DAYS = int(_clean(os.getenv("VIDEO_KEEP_DAYS", "")) or "14")
 
 JWT_SECRET = _clean(os.getenv("JWT_SECRET", ""))
 if len(JWT_SECRET) < 24:  # no setup needed: make one and remember it
@@ -140,6 +161,13 @@ SYSTEM_PROMPT = (
     "You are INFINITY AI, a friendly, expert voice and text assistant created by Sarath Chandra. "
     "Answer any question clearly and accurately. Keep spoken-style answers concise unless asked for detail. "
     "Use Markdown (short lists, fenced code with a language) when useful. "
+    "TABLES: whenever the user asks for a comparison, differences, pros and cons, a schedule or timetable, a plan, "
+    "prices, specifications, a list of items with several attributes, or any data that has 2 or more columns, "
+    "present it as a Markdown table, not as paragraphs or bullets. Table rules: a header row and a separator row (|---|---|); "
+    "3 to 6 short columns; the first column names the item; cells are short phrases (under 12 words), never full sentences; "
+    "keep units and numbers consistent; no empty cells (write '-'); no more than 12 rows unless asked; "
+    "put one short sentence before the table and at most two short lines after it (a verdict or tip). "
+    "Do not use a table for simple answers, single facts or step-by-step instructions. "
     "Analyse attached images and files as asked. Reply in the language the user writes or speaks in. "
     "If the user asks you to create, generate, draw or design an image, picture, logo, poster or other visual, "
     "reply with one short friendly sentence, then on a new last line write exactly "

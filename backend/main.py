@@ -17,6 +17,7 @@ import docs
 import images
 import payments
 import providers
+import video
 from auth import current_user, hash_password, make_token, verify_password
 from database import Conversation, Message, SessionLocal, User, get_db, init_db, is_pro, plan_info
 
@@ -34,11 +35,15 @@ for _w in config.PROBLEMS:
 if config.KEY_PROBLEM:
     print("   ! " + config.KEY_PROBLEM)
 print("[INFINITY AI] Google sign-in:", "on" if config.GOOGLE_CLIENT_ID else "off (add GOOGLE_CLIENT_ID to enable)",)
+print("[INFINITY AI] Video providers:", ", ".join(video.available()) or "none (add MAGIC_HOUR_API_KEY, a free key from magichour.ai)")
 print("[INFINITY AI] Image providers:", ", ".join(images.available()) or "none")
 print("[INFINITY AI] Payments (Razorpay):", ("on, " + ("TEST mode" if config.RAZORPAY_KEY_ID.startswith("rzp_test_") else "LIVE mode")) if payments.enabled() else "off (add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to enable)", "\n")
 
 EMAIL = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 DATA_URL = re.compile(r"^data:(image/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)$")
+VID_ASK = re.compile(
+    r"^\s*(please\s+)?((can|could|would)\s+you\s+)?(generate|create|make|produce|animate)\s+(me\s+)?(an?\s+|the\s+|some\s+)?"
+    r"(?:[\w-]+\s+){0,3}?(video|clip|animation)s?\s+(of|for|showing|about|where|that|with)\b", re.I)
 IMG_TAG = re.compile(r"\[\[IMAGE:\s*(.+?)(\]\]|$)", re.S)
 IMG_ASK = re.compile(
     r"^\s*(please\s+)?((can|could|would)\s+you\s+)?(generate|create|make|draw|design|paint|render|give\s+me|show\s+me)\s+(me\s+)?"
@@ -73,6 +78,7 @@ class ChatIn(BaseModel):
     images: list[str] = Field(default_factory=list, max_length=6)
     files: list[FileIn] = Field(default_factory=list, max_length=6)
     deep: bool = False
+    video: bool = False
     regenerate: bool = False
 
 
@@ -95,7 +101,18 @@ def public_config():
         "pro_days": config.PRO_DAYS,
         "free_limit": config.FREE_DAILY_LIMIT,
         "pro_limit": config.PRO_DAILY_LIMIT,
+        "video": bool(video.available()),
+        "free_videos": config.FREE_VIDEO_LIMIT,
+        "pro_videos": config.PRO_VIDEO_LIMIT,
     }
+
+
+def videos_today(db: Session, user: User) -> int:
+    since = datetime.utcnow() - timedelta(days=1)
+    return db.scalar(
+        select(func.count(Message.id)).join(Conversation, Conversation.id == Message.conversation_id)
+        .where(Conversation.user_id == user.id, Message.role == "assistant", Message.images.like("%/media/video/%"), Message.created_at > since)
+    ) or 0
 
 
 def used_today(db: Session, user: User) -> int:
@@ -262,6 +279,20 @@ def chat(body: ChatIn, user: User = Depends(current_user), db: Session = Depends
     if body.deep and not pro:
         raise HTTPException(402, "Deep thinking is a Pro feature. Upgrade your plan to use it.")
 
+    vid_text = body.message
+    if body.regenerate:
+        lu = db.scalars(select(Message).where(Message.conversation_id == body.conversation_id, Message.role == "user").order_by(Message.id.desc())).first()
+        vid_text = lu.content if lu else ""
+    want_video = (not body.images) and (body.video or bool(VID_ASK.search(vid_text or "")))
+    if want_video:
+        if not video.available():
+            raise HTTPException(503, "Video generation is not set up. Add MAGIC_HOUR_API_KEY (free key from magichour.ai), or GEMINI_API_KEY with billing turned on, to backend/.env.")
+        vlimit = config.PRO_VIDEO_LIMIT if pro else config.FREE_VIDEO_LIMIT
+        if vlimit <= 0:
+            raise HTTPException(402, "Video generation is a Pro feature. Upgrade your plan to create videos.")
+        if videos_today(db, user) >= vlimit:
+            raise HTTPException(429, f"Video limit reached ({vlimit} per day). Try again tomorrow." if pro else f"Video limit reached on the Free plan ({vlimit} per day). Upgrade to Pro for more.")
+
     conv = db.get(Conversation, body.conversation_id)
     if conv and conv.user_id != user.id:
         raise HTTPException(404, "Conversation not found.")
@@ -306,13 +337,29 @@ def chat(body: ChatIn, user: User = Depends(current_user), db: Session = Depends
         parts: list[str] = []
         pics: list[str] = []
         try:
-            if direct_image:  # "create an image of ..." -> no chat model needed
+            if want_video:  # video takes 1-3 minutes: the stream sends a progress note every few seconds
+                text = "Here is your video."
+                parts.append(text)
+                yield sse({"type": "delta", "text": text})
+                yield sse({"type": "status", "kind": "video", "seconds": 0})
+                for ev in video.generate(last_user, history=[x.content for x in rows if x.role == "user"][-4:-1]):
+                    if "wait" in ev:
+                        yield sse({"type": "status", "kind": "video", "seconds": int(ev["wait"])})
+                    else:
+                        pics.append(ev["url"])
+                        yield sse({"type": "video", "url": ev["url"]})
+            elif direct_image:  # "create an image of ..." -> no chat model needed
                 text = "Here is your image."
                 parts.append(text)
                 yield sse({"type": "delta", "text": text})
                 yield sse({"type": "status", "kind": "image"})
-                pics.append(images.generate(last_user, smart=True))
-                yield sse({"type": "image", "url": pics[0]})
+                url, who = images.generate_ex(last_user, smart=True, history=[x.content for x in rows if x.role == "user"][-4:-1])
+                pics.append(url)
+                yield sse({"type": "image", "url": url, "provider": who})
+                if config.IMAGE_SHOW_PROVIDER:
+                    note = f"\n\n_Made with {images.label(who)}._"
+                    parts.append(note)
+                    yield sse({"type": "delta", "text": note})
             else:
                 for t in providers.stream_text(msgs, body.deep):
                     parts.append(t)
@@ -320,12 +367,19 @@ def chat(body: ChatIn, user: User = Depends(current_user), db: Session = Depends
                 tag = IMG_TAG.search("".join(parts))
                 if tag:  # the AI asked for a picture
                     yield sse({"type": "status", "kind": "image"})
-                    pics.append(images.generate(tag.group(1)))
-                    yield sse({"type": "image", "url": pics[0]})
+                    url, who = images.generate_ex(tag.group(1))
+                    pics.append(url)
+                    yield sse({"type": "image", "url": url, "provider": who})
+                    if config.IMAGE_SHOW_PROVIDER:
+                        note = f"\n\n_Made with {images.label(who)}._"
+                        parts.append(note)
+                        yield sse({"type": "delta", "text": note})
             yield sse({"type": "done"})
         except providers.AIError as e:
             log.error("AI error: %s", e.message)
             yield sse({"type": "error", "message": e.message})
+        except video.VideoError as e:
+            yield sse({"type": "error", "message": ("The video could not be created. " + str(e))[:360]})
         except images.ImageError as e:
             yield sse({"type": "error", "message": ("The image could not be created. " + str(e))[:320]})
         except Exception:
@@ -365,4 +419,5 @@ FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
 _page = FRONTEND / "index.html"
 print(f"[INFINITY AI] Website folder: {FRONTEND}")
 print("[INFINITY AI] New input bar (+ menu) in that page:", "YES" if _page.exists() and "plusBtn" in _page.read_text(encoding="utf-8") else "NO - this index.html is the old version")
+app.mount("/media", StaticFiles(directory=video.ROOT), name="media")
 app.mount("/", NoCacheStatic(directory=FRONTEND, html=True), name="web")
