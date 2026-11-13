@@ -1,0 +1,10 @@
+{
+  "name": "INFINITY AI",
+  "short_name": "INFINITY AI",
+  "description": "Voice and text AI assistant powered by Sarath Chandra",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070706",
+  "theme_color": "#070706",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
