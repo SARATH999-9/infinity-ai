@@ -14,7 +14,7 @@ limits, and an optional Pro subscription flow.
 > variables, account status, and plan limits. A feature being documented
 > does not guarantee that it is currently enabled or working in the
 > deployed production environment. Verify the live deployment before
-> advertising a feature as available.
+> advertising a feature as available
 
 ------------------------------------------------------------------------
 
