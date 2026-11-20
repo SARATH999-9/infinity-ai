@@ -1,7 +1,7 @@
 # INFINITY AI
 
 **An AI-powered web assistant for conversations, media creation, music
-discovery, and productivity.**
+discovery, and productivity.*
 
 Infinity AI is a web application built around a FastAPI backend and a
 browser-based frontend. It brings AI chat and configurable media
